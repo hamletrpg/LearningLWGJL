@@ -10,7 +10,7 @@ import static org.lwjgl.opengl.GL.createCapabilities;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.system.MemoryUtil.NULL;
 
-public class Window {
+        public class Window {
     private int width, height;
     private String title;
     private static Window window = null;

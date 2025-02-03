@@ -104,6 +104,9 @@ import static org.lwjgl.system.MemoryUtil.NULL;
 
         createCapabilities();
 
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+
         Window.changeScene(0);
     }
 

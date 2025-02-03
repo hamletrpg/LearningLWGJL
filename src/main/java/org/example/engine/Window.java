@@ -1,6 +1,5 @@
 package org.example.engine;
 
-import org.example.util.Time;
 import org.lwjgl.Version;
 import org.lwjgl.glfw.GLFWErrorCallback;
 
@@ -50,6 +49,10 @@ import static org.lwjgl.system.MemoryUtil.NULL;
             Window.window = new Window();
         }
         return Window.window;
+    }
+
+    public static Scene getCurrentScene() {
+        return Window.get().currentScene;
     }
 
     public void run() {
@@ -105,8 +108,8 @@ import static org.lwjgl.system.MemoryUtil.NULL;
     }
 
     public void loop() {
-        float beginTime = Time.getTime();
-        float endTime = Time.getTime();
+        float beginTime = (float)glfwGetTime();
+        float endTime = (float)glfwGetTime();
         float dt = -1.0f;
 
         while (!glfwWindowShouldClose(glfwWindow)){
@@ -121,7 +124,7 @@ import static org.lwjgl.system.MemoryUtil.NULL;
 
             glfwSwapBuffers(glfwWindow);
 
-            endTime = Time.getTime();
+            endTime = (float)glfwGetTime();
             dt = endTime - beginTime;
             beginTime = endTime;
         }

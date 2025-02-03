@@ -1,65 +1,16 @@
 package org.example.engine;
 
-import org.example.components.FontRenderer;
+
 import org.example.components.SpriteRenderer;
-import org.example.renderer.Shader;
-import org.example.renderer.Texture;
-import org.example.util.Time;
+import org.example.components.SpriteSheet;
+import org.example.util.AssetPool;
 import org.joml.Vector2f;
-import org.lwjgl.BufferUtils;
-
-import java.awt.event.KeyEvent;
-import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
-
-import static org.lwjgl.opengl.GL20.*;
-import static org.lwjgl.opengl.GL30.glBindVertexArray;
-import static org.lwjgl.opengl.GL30.glGenVertexArrays;
+import org.joml.Vector4f;
 
 public class LevelEditorScene extends Scene {
-    private String vertexShaderSrc = "#version 330 core\n" +
-            "layout (location=0) in vec3 aPos;\n" +
-            "layout (location=1) in vec4 aColor;\n" +
-            "\n" +
-            "out vec4 fColor;\n" +
-            "\n" +
-            "void main()\n" +
-            "{\n" +
-            "    fColor = aColor;\n" +
-            "    gl_Position = vec4(aPos, 1.0);\n" +
-            "}";
-    private String fragmentShaderSrc = "#version 330 core\n" +
-            "\n" +
-            "in vec4 fColor;\n" +
-            "out vec4 color;\n" +
-            "\n" +
-            "void main()\n" +
-            "{\n" +
-            "    color = fColor;\n" +
-            "}";
+    private GameObject obj1;
+    private SpriteSheet sprites;
 
-    private int vertexID, fragmentID, shaderProgram;
-
-    private float[] vertexArray = {
-        // position                           // color                      // UV Coordinates
-            100.5f, 0f, 0.0f,              1.0f, 0.0f, 0.0f, 1.0f,      1, 1,  // Bottom right
-            00, 100.5f, 0.0f,                  0.0f, 1.0f, 0.0f, 1.0f,      0, 0,  // Top left
-            100f, 100f, 0.0f,              0.0f, 0.0f, 1.0f, 1.0f,      1, 0, // Top right
-            0f, 0, 0.0f,                       1.0f, 1.0f, 0.0f, 1.0f,      0, 1, // Bottom left
-    };
-
-    // Must be in counter-clockwise order
-    private int[] elementArray = {
-            2, 1, 0, // Top right triangle
-            0, 1, 3 // bottom left triangle
-    };
-
-    private int vaoID, vboID, eboID;
-
-    private Shader defaultShader;
-    private Texture testTexture;
-
-    GameObject testObj;
     private boolean firstTime = false;
 
     public LevelEditorScene() {
@@ -68,93 +19,53 @@ public class LevelEditorScene extends Scene {
 
     @Override
     public void init() {
-        System.out.println("test object");
-        this.testObj = new GameObject("test object");
-        this.testObj.addComponent(new SpriteRenderer());
-        this.testObj.addComponent(new FontRenderer());
-        this.addGameObjectToScene(this.testObj);
+        loadResources();
 
-        this.camera = new Camera(new Vector2f());
-        defaultShader = new Shader("assets/shaders/default.glsl");
-        defaultShader.compile();
-        this.testTexture = new Texture("assets/images/miner_basic.png");
 
-        // Generate VAO, VBO,  and EBO buffer objects, and send to GPU
-        vaoID = glGenVertexArrays();
-        glBindVertexArray(vaoID);
+        this.camera = new Camera(new Vector2f(-150, 0));
 
-        FloatBuffer vertexBuffer = BufferUtils.createFloatBuffer(vertexArray.length);
-        vertexBuffer.put(vertexArray).flip();
+        sprites = AssetPool.getSpriteSheet("assets/images/spritesheet.png");
 
-        // Create VBO upload the vertex buffer
-        vboID = glGenBuffers();
-        glBindBuffer(GL_ARRAY_BUFFER, vboID);
-        glBufferData(GL_ARRAY_BUFFER, vertexBuffer, GL_STATIC_DRAW);
+        obj1 = new GameObject("Object 1", new Transform(new Vector2f(100, 100), new Vector2f(256, 256)));
+        obj1.addComponent(new SpriteRenderer(sprites.getSprite(0)));
+        this.addGameObjectToScene(obj1);
 
-        // create the nidices and upload
+        GameObject obj2 = new GameObject("Object 1", new Transform(new Vector2f(400, 100), new Vector2f(256, 256)));
+        obj2.addComponent(new SpriteRenderer(sprites.getSprite(10)));
+        this.addGameObjectToScene(obj2);
 
-        IntBuffer elementBuffer = BufferUtils.createIntBuffer(elementArray.length);
-        elementBuffer.put(elementArray).flip();
 
-        eboID = glGenBuffers();
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eboID);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, elementBuffer, GL_STATIC_DRAW);
-
-        // Add the vertex attribute pointers
-        int positionSize = 3;
-        int colorSize = 4;
-        int uvSize = 2;
-        int vertexSizeBytes = (positionSize + colorSize + uvSize) * Float.BYTES;
-        glVertexAttribPointer(0, positionSize, GL_FLOAT, false, vertexSizeBytes, 0);
-        glEnableVertexAttribArray(0);
-
-        glVertexAttribPointer(1, colorSize, GL_FLOAT, false, vertexSizeBytes, positionSize * Float.BYTES);
-        glEnableVertexAttribArray(1);
-
-        glVertexAttribPointer(2, uvSize, GL_FLOAT, false, vertexSizeBytes, (positionSize + colorSize ) * Float.BYTES);
-        glEnableVertexAttribArray(2);
     }
+
+    private void loadResources() {
+        AssetPool.getShader("assets/shaders/default.glsl");
+
+        AssetPool.addSpriteSheet("assets/images/spritesheet.png",
+                new SpriteSheet(AssetPool.getTexture("assets/images/spritesheet.png"),
+                        16, 16, 26, 0
+                        )
+                );
+    }
+
+    private int spriteIndex = 0;
+    private float spriteFlipTime = 0.2f;
+    private float spriteFlipTimeLeft = 0.0f;
 
     @Override
     public void update(float dt) {
-        defaultShader.use();
-
-        // Upload texture to shader
-        defaultShader.uploadTexture("TEX_SAMPLER", 0);
-        glActiveTexture(GL_TEXTURE0);
-        testTexture.bind();
-
-        defaultShader.uploadMat4f("uProjection", camera.getProjectionMatrix());
-        defaultShader.uploadMat4f("uView", camera.getViewMatrix());
-        defaultShader.uploadFloat("uTime", Time.getTime());
-
-        glBindVertexArray(vaoID);
-
-        // enable vertex attribute pointers
-        glEnableVertexAttribArray(0);
-        glEnableVertexAttribArray(1);
-
-        glDrawElements(GL_TRIANGLES, elementArray.length, GL_UNSIGNED_INT, 0);
-
-        // unbind everything
-
-        glDisableVertexAttribArray(0);
-        glDisableVertexAttribArray(1);
-
-        glBindVertexArray(0);
-
-        defaultShader.detach();
-
-        if (!firstTime) {
-            System.out.println("Creating gameObject!");
-            GameObject go = new GameObject("Game Test 2");
-            go.addComponent(new SpriteRenderer());
-            this.addGameObjectToScene(go);
-            firstTime = true;
+        spriteFlipTimeLeft -= dt;
+        if (spriteFlipTimeLeft <= 0) {
+            spriteFlipTimeLeft = spriteFlipTime;
+            spriteIndex++;
+            if (spriteIndex > 4) {
+                spriteIndex = 0;
+            }
+            obj1.getComponent(SpriteRenderer.class).setSprite(sprites.getSprite(spriteIndex));
         }
 
         for (GameObject go : this.gameObjects) {
             go.update(dt);
         }
+        this.renderer.render();
     }
 }
